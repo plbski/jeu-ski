@@ -15,15 +15,15 @@ let staminaDébutTour = 100;
 let compteurTours = 0;
 
 let chemin = [
-    { type: 'ligne', longueur: 150, angle: 0 },
-    { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI / 2 },
-    { type: 'ligne', longueur: 150, angle: Math.PI },
-    { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI + Math.PI / 2 },
-    { type: 'ligne', longueur: 150, angle: 0 },
-    { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI / 2 },
-    { type: 'ligne', longueur: 150, angle: Math.PI },
-    { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI }
-];
+        { type: 'ligne', longueur: 150, angle: 0 },
+        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI / 2 },
+        { type: 'ligne', longueur: 150, angle: Math.PI },
+        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI + Math.PI / 2 },
+        { type: 'ligne', longueur: 150, angle: 0 },
+        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI / 2 },
+        { type: 'ligne', longueur: 150, angle: Math.PI },
+        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI }
+       ];
 
 let parcours = [];  // Tableau pour stocker les points de la trajectoire du joueur
 
@@ -31,34 +31,47 @@ function dessinerParcours() {
     let x = centre.x;
     let y = centre.y;
     let angle = 0;
-    
+
     chemin.forEach((segment) => {
         if (segment.type === 'ligne') {
+            // Calcul précis du point final pour une ligne
             let x2 = x + Math.cos(angle) * segment.longueur;
             let y2 = y + Math.sin(angle) * segment.longueur;
+
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.lineTo(x2, y2);
             ctx.strokeStyle = "black";
             ctx.lineWidth = 3;
             ctx.stroke();
+
+            // Mise à jour des coordonnées et de l'angle
             x = x2;
             y = y2;
-        } else if (segment.type === 'courbe') {
-            let x2 = x + Math.cos(angle) * segment.rayon;
-            let y2 = y + Math.sin(angle) * segment.rayon;
+            angle += segment.angle;
+        } 
+        else if (segment.type === 'courbe') {
             let startAngle = angle;
-            let endAngle = angle + segment.arc;
+            let endAngle = startAngle + segment.arc;
+
             ctx.beginPath();
             ctx.arc(x, y, segment.rayon, startAngle, endAngle);
             ctx.strokeStyle = "black";
             ctx.lineWidth = 3;
             ctx.stroke();
-            x = x2 + Math.cos(endAngle) * segment.rayon;
-            y = y2 + Math.sin(endAngle) * segment.rayon;
+
+            // Calcul précis du nouveau point
+            x = x + Math.cos(startAngle) * segment.rayon;
+            y = y + Math.sin(startAngle) * segment.rayon;
             angle = endAngle;
         }
     });
+
+    // Optionnel : fermer le circuit
+    ctx.beginPath();
+    ctx.moveTo(centre.x, centre.y);
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function dessinerJoueur() {
@@ -91,27 +104,32 @@ function dessinerCompteurTours() {
 }
 
 function avancerJoueur() {
-    let segment = chemin[compteurTours % chemin.length]; // On fait défiler le parcours
-    let angleJoueurActuel = angleJoueur;
-    let x = centre.x + Math.cos(angleJoueurActuel) * (rayonInterieur + rayonExterieur) / 2;
-    let y = centre.y + Math.sin(angleJoueurActuel) * (rayonInterieur + rayonExterieur) / 2;
+    let segmentActuel = chemin[compteurTours % chemin.length];
     
-    if (segment.type === 'ligne') {
-        angleJoueur += vitesse;  // Avancer sur une ligne droite
-    } else if (segment.type === 'courbe') {
-        angleJoueur += vitesse;  // Avancer sur une courbe
+    if (segmentActuel.type === 'ligne') {
+        // Progression sur une ligne droite
+        x += Math.cos(angleJoueur) * vitesse;
+        y += Math.sin(angleJoueur) * vitesse;
+    } else if (segmentActuel.type === 'courbe') {
+        // Progression sur une courbe
+        angleJoueur += vitesse / segmentActuel.rayon;
+        x = centre.x + Math.cos(angleJoueur) * segmentActuel.rayon;
+        y = centre.y + Math.sin(angleJoueur) * segmentActuel.rayon;
     }
 
     // Ajouter la position actuelle à la trajectoire du joueur
     parcours.push({ x, y });
-    if (parcours.length > 200) parcours.shift();  // Limiter la longueur de la trajectoire
-    
-    // Augmenter la vitesse ou ajuster la stamina
-    if (stamina > 0) {
-        if (espaceAppuye) {
-            vitesse += acceleration;
-            stamina -= 0.5;
-        }
+    if (parcours.length > 200) parcours.shift();
+
+    // Gestion de la vitesse et de la stamina
+    if (stamina > 0 && espaceAppuye) {
+        vitesse += acceleration;
+        stamina -= 0.5;
+    }
+
+    // Vérifier si le segment est terminé
+    if (/* condition de fin de segment */) {
+        compteurTours++;
     }
 }
 
