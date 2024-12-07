@@ -11,6 +11,9 @@ const rayonInterieur = 200; // Rayon du tracé intérieur
 let angleJoueur = 0; // Position angulaire du joueur
 let vitesse = 0.02; // Vitesse angulaire de base
 let acceleration = 0.005; // Accélération
+let stamina = 100; // Stamina initiale (en %)
+let compteurTours = 0; // Compteur de tours
+let dernierAngle = angleJoueur; // Pour détecter les tours complets
 
 // Fonction pour dessiner le tracé (un anneau)
 function dessinerTracé() {
@@ -40,6 +43,29 @@ function dessinerJoueur() {
     ctx.fill();
 }
 
+// Fonction pour dessiner la barre de stamina
+function dessinerStamina() {
+    const largeurBarre = 200;
+    const hauteurBarre = 20;
+    const x = canvas.width / 2 - largeurBarre / 2;
+    const y = canvas.height - 50;
+
+    // Contour de la barre
+    ctx.fillStyle = "black";
+    ctx.fillRect(x - 2, y - 2, largeurBarre + 4, hauteurBarre + 4);
+
+    // Remplissage de la barre
+    ctx.fillStyle = "green";
+    ctx.fillRect(x, y, (stamina / 100) * largeurBarre, hauteurBarre);
+}
+
+// Fonction pour dessiner le compteur de tours
+function dessinerCompteurTours() {
+    ctx.fillStyle = "black";
+    ctx.font = "20px Arial";
+    ctx.fillText(`Tours: ${compteurTours}`, 10, 30);
+}
+
 // Gestion des touches
 let espaceAppuye = false;
 window.addEventListener("keydown", (e) => {
@@ -58,21 +84,29 @@ function boucleJeu() {
     // Effacer le canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dessiner le tracé
+    // Dessiner les éléments
     dessinerTracé();
+    dessinerJoueur();
+    dessinerStamina();
+    dessinerCompteurTours();
 
-    // Accélération si Espace est appuyé
-    if (espaceAppuye) {
+    // Gestion de la vitesse et de la stamina
+    if (espaceAppuye && stamina > 0) {
         vitesse += acceleration;
+        stamina -= 0.5; // Réduction de la stamina
     } else {
         vitesse = Math.max(0.02, vitesse - 0.001); // Ralentir progressivement
+        stamina = Math.min(100, stamina + 0.2); // Régénérer la stamina
     }
 
     // Mettre à jour la position angulaire du joueur
     angleJoueur += vitesse;
 
-    // Dessiner le joueur
-    dessinerJoueur();
+    // Détecter un tour complet
+    if (dernierAngle < 0 && angleJoueur >= 0) {
+        compteurTours++;
+    }
+    dernierAngle = angleJoueur;
 
     // Recommencer la boucle
     requestAnimationFrame(boucleJeu);
@@ -80,4 +114,5 @@ function boucleJeu() {
 
 // Démarrer le jeu
 boucleJeu();
+
 
