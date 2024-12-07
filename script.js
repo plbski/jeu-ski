@@ -1,58 +1,43 @@
 // Initialisation du canvas
 const canvas = document.getElementById("jeu");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 800;
+canvas.height = 800;
 
 // Variables globales
-let vitesse = 2; // Vitesse de base
-let acceleration = 0.1; // Incrément de vitesse
-let joueur = {
-    x: canvas.width / 2 - 25,
-    y: canvas.height - 100,
-    largeur: 50,
-    hauteur: 100,
-    couleur: "blue"
-};
-let obstacles = [];
-let score = 0;
+const centre = { x: canvas.width / 2, y: canvas.height / 2 };
+const rayonExterieur = 300; // Rayon du tracé extérieur
+const rayonInterieur = 200; // Rayon du tracé intérieur
+let angleJoueur = 0; // Position angulaire du joueur
+let vitesse = 0.02; // Vitesse angulaire de base
+let acceleration = 0.005; // Accélération
+
+// Fonction pour dessiner le tracé (un anneau)
+function dessinerTracé() {
+    // Partie extérieure
+    ctx.beginPath();
+    ctx.arc(centre.x, centre.y, rayonExterieur, 0, Math.PI * 2);
+    ctx.fillStyle = "#ddd";
+    ctx.fill();
+
+    // Partie intérieure
+    ctx.beginPath();
+    ctx.arc(centre.x, centre.y, rayonInterieur, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+}
 
 // Fonction pour dessiner le joueur
 function dessinerJoueur() {
-    ctx.fillStyle = joueur.couleur;
-    ctx.fillRect(joueur.x, joueur.y, joueur.largeur, joueur.hauteur);
-}
+    // Calculer la position du joueur sur l'anneau
+    const x = centre.x + Math.cos(angleJoueur) * (rayonInterieur + rayonExterieur) / 2;
+    const y = centre.y + Math.sin(angleJoueur) * (rayonInterieur + rayonExterieur) / 2;
 
-// Fonction pour créer des obstacles
-function creerObstacle() {
-    const largeur = Math.random() * 100 + 50;
-    const x = Math.random() * (canvas.width - largeur);
-    obstacles.push({
-        x: x,
-        y: -100,
-        largeur: largeur,
-        hauteur: 20,
-        couleur: "red"
-    });
-}
-
-// Fonction pour dessiner les obstacles
-function dessinerObstacles() {
-    obstacles.forEach((obstacle) => {
-        ctx.fillStyle = obstacle.couleur;
-        ctx.fillRect(obstacle.x, obstacle.y, obstacle.largeur, obstacle.hauteur);
-    });
-}
-
-// Fonction pour mettre à jour les obstacles
-function mettreAJourObstacles() {
-    obstacles.forEach((obstacle, index) => {
-        obstacle.y += vitesse;
-        if (obstacle.y > canvas.height) {
-            obstacles.splice(index, 1);
-            score++;
-        }
-    });
+    // Dessiner le joueur
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = "blue";
+    ctx.fill();
 }
 
 // Gestion des touches
@@ -73,29 +58,21 @@ function boucleJeu() {
     // Effacer le canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Dessiner le tracé
+    dessinerTracé();
+
     // Accélération si Espace est appuyé
     if (espaceAppuye) {
         vitesse += acceleration;
     } else {
-        vitesse = Math.max(2, vitesse - 0.05); // Ralentir progressivement
+        vitesse = Math.max(0.02, vitesse - 0.001); // Ralentir progressivement
     }
 
-    // Dessiner les éléments
+    // Mettre à jour la position angulaire du joueur
+    angleJoueur += vitesse;
+
+    // Dessiner le joueur
     dessinerJoueur();
-    dessinerObstacles();
-
-    // Mettre à jour les éléments
-    mettreAJourObstacles();
-
-    // Créer des obstacles aléatoirement
-    if (Math.random() < 0.02) {
-        creerObstacle();
-    }
-
-    // Afficher le score
-    ctx.fillStyle = "black";
-    ctx.font = "20px Arial";
-    ctx.fillText(`Score: ${score}`, 10, 30);
 
     // Recommencer la boucle
     requestAnimationFrame(boucleJeu);
@@ -103,3 +80,4 @@ function boucleJeu() {
 
 // Démarrer le jeu
 boucleJeu();
+
