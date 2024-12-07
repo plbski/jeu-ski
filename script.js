@@ -9,9 +9,11 @@ const centre = { x: canvas.width / 2, y: canvas.height / 2 };
 const rayonExterieur = 300; // Rayon du tracé extérieur
 const rayonInterieur = 200; // Rayon du tracé intérieur
 let angleJoueur = 0; // Position angulaire du joueur
-let vitesse = 0.02; // Vitesse angulaire de base
-let acceleration = 0.005; // Accélération
-let stamina = 100; // Stamina initiale (en %)
+let vitesse = 0.005; // Vitesse angulaire de base
+let acceleration = 0.002; // Accélération
+let stamina = 100; // Stamina actuelle (en %)
+let staminaMax = 100; // Stamina maximale (initialement 100 %)
+let staminaDébutTour = 100; // Stamina au début du tour
 let compteurTours = 0; // Compteur de tours
 let dernierAngle = angleJoueur; // Pour détecter les tours complets
 
@@ -32,11 +34,9 @@ function dessinerTracé() {
 
 // Fonction pour dessiner le joueur
 function dessinerJoueur() {
-    // Calculer la position du joueur sur l'anneau
     const x = centre.x + Math.cos(angleJoueur) * (rayonInterieur + rayonExterieur) / 2;
     const y = centre.y + Math.sin(angleJoueur) * (rayonInterieur + rayonExterieur) / 2;
 
-    // Dessiner le joueur
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, Math.PI * 2);
     ctx.fillStyle = "blue";
@@ -56,7 +56,7 @@ function dessinerStamina() {
 
     // Remplissage de la barre
     ctx.fillStyle = "green";
-    ctx.fillRect(x, y, (stamina / 100) * largeurBarre, hauteurBarre);
+    ctx.fillRect(x, y, (stamina / staminaMax) * largeurBarre, hauteurBarre);
 }
 
 // Fonction pour dessiner le compteur de tours
@@ -95,8 +95,8 @@ function boucleJeu() {
         vitesse += acceleration;
         stamina -= 0.5; // Réduction de la stamina
     } else {
-        vitesse = Math.max(0.02, vitesse - 0.001); // Ralentir progressivement
-        stamina = Math.min(100, stamina + 0.2); // Régénérer la stamina
+        vitesse = Math.max(0.005, vitesse - 0.001); // Ralentir progressivement
+        stamina = Math.min(staminaMax, stamina + 0.2); // Régénérer la stamina
     }
 
     // Mettre à jour la position angulaire du joueur
@@ -105,6 +105,13 @@ function boucleJeu() {
     // Détecter un tour complet
     if (dernierAngle < 0 && angleJoueur >= 0) {
         compteurTours++;
+
+        // Calculer la stamina utilisée pendant le tour
+        const staminaUtilisée = staminaDébutTour - stamina;
+        if (staminaUtilisée >= staminaMax * 0.5) {
+            staminaMax = Math.max(10, staminaMax * 0.9); // Réduire de 10 %, minimum de 10 %
+        }
+        staminaDébutTour = stamina; // Réinitialiser la stamina de début de tour
     }
     dernierAngle = angleJoueur;
 
@@ -114,5 +121,6 @@ function boucleJeu() {
 
 // Démarrer le jeu
 boucleJeu();
+
 
 
