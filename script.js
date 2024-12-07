@@ -15,21 +15,84 @@ let stamina = 100; // Stamina actuelle (en %)
 let staminaMax = 100; // Stamina maximale (initialement 100 %)
 let staminaDébutTour = 100; // Stamina au début du tour
 let compteurTours = 0; // Compteur de tours
-let dernierAngle = angleJoueur; // Pour détecter les tours complets
+let chemin = []; // Tableau pour stocker les segments du parcours
 
-// Fonction pour dessiner le tracé (un anneau)
-function dessinerTracé() {
-    // Partie extérieure
-    ctx.beginPath();
-    ctx.arc(centre.x, centre.y, rayonExterieur, 0, Math.PI * 2);
-    ctx.fillStyle = "#ddd";
-    ctx.fill();
+// Fonction pour dessiner le tracé (parcours avec virages et lignes droites)
+function dessinerParcours() {
+    // Définir le parcours avec des segments de lignes droites et des virages (courbes)
+    chemin = [
+        // Segment 1 : Ligne droite
+        { type: 'ligne', x1: centre.x, y1: centre.y, angle: 0, longueur: 150 },
+        
+        // Segment 2 : Virage à droite
+        { type: 'courbe', x1: centre.x + 150, y1: centre.y, angle: Math.PI / 2, rayon: 100, arc: Math.PI / 2 },
 
-    // Partie intérieure
+        // Segment 3 : Ligne droite
+        { type: 'ligne', x1: centre.x + 150 + 100, y1: centre.y, angle: Math.PI, longueur: 150 },
+        
+        // Segment 4 : Virage à gauche
+        { type: 'courbe', x1: centre.x + 150 + 100 + 150, y1: centre.y, angle: Math.PI / 2, rayon: 100, arc: Math.PI / 2 },
+
+        // Segment 5 : Ligne droite
+        { type: 'ligne', x1: centre.x + 150 + 100 + 150 + 100, y1: centre.y, angle: 0, longueur: 150 },
+
+        // Segment 6 : Virage à gauche
+        { type: 'courbe', x1: centre.x + 150 + 100 + 150 + 100 + 150, y1: centre.y, angle: 0, rayon: 100, arc: Math.PI / 2 },
+
+        // Segment 7 : Ligne droite
+        { type: 'ligne', x1: centre.x + 150 + 100 + 150 + 100 + 150 + 100, y1: centre.y, angle: Math.PI, longueur: 150 },
+
+        // Segment 8 : Virage à droite
+        { type: 'courbe', x1: centre.x + 150 + 100 + 150 + 100 + 150 + 100 + 150, y1: centre.y, angle: -Math.PI / 2, rayon: 100, arc: Math.PI / 2 },
+    ];
+
+    // Dessiner chaque segment du parcours
+    chemin.forEach(segment => {
+        if (segment.type === 'ligne') {
+            dessinerLigne(segment);
+        } else if (segment.type === 'courbe') {
+            dessinerCourbe(segment);
+        }
+    });
+}
+
+// Fonction pour dessiner un segment de ligne droite
+function dessinerLigne(segment) {
+    const x2 = segment.x1 + Math.cos(segment.angle) * segment.longueur;
+    const y2 = segment.y1 + Math.sin(segment.angle) * segment.longueur;
+
     ctx.beginPath();
-    ctx.arc(centre.x, centre.y, rayonInterieur, 0, Math.PI * 2);
-    ctx.fillStyle = "white";
-    ctx.fill();
+    ctx.moveTo(segment.x1, segment.y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = "black"; // Couleur de la ligne du parcours
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Mise à jour des coordonnées pour le prochain segment
+    segment.x1 = x2;
+    segment.y1 = y2;
+}
+
+// Fonction pour dessiner un segment de courbe
+function dessinerCourbe(segment) {
+    const x1 = segment.x1;
+    const y1 = segment.y1;
+    const rayon = segment.rayon;
+    const angle1 = segment.angle;
+    const angle2 = angle1 + segment.arc;
+
+    ctx.beginPath();
+    ctx.arc(x1, y1, rayon, angle1, angle2);
+    ctx.strokeStyle = "black"; // Couleur de la courbe
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Mise à jour des coordonnées pour le prochain segment (coordonnées du dernier point sur la courbe)
+    const x2 = x1 + Math.cos(angle2) * rayon;
+    const y2 = y1 + Math.sin(angle2) * rayon;
+
+    segment.x1 = x2;
+    segment.y1 = y2;
 }
 
 // Fonction pour dessiner le joueur
@@ -66,6 +129,21 @@ function dessinerCompteurTours() {
     ctx.fillText(`Tours: ${compteurTours}`, 10, 30);
 }
 
+// Fonction pour dessiner le repère de tour
+function dessinerRepereTour() {
+    // La ligne de repère se trouve à l'angle 0 (c'est-à-dire sur la droite du cercle)
+    const x = centre.x + Math.cos(0) * rayonExterieur;
+    const y = centre.y + Math.sin(0) * rayonExterieur;
+
+    // Dessiner la ligne de repère (ici une ligne verticale pour signaler le début du tour)
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, centre.y); // Ligne partant du point sur le cercle jusqu'au centre
+    ctx.strokeStyle = "red"; // Couleur de la ligne
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
 // Gestion des touches
 let espaceAppuye = false;
 window.addEventListener("keydown", (e) => {
@@ -85,7 +163,8 @@ function boucleJeu() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Dessiner les éléments
-    dessinerTracé();
+    dessinerParcours(); // Dessiner le parcours avec virages et lignes droites
+    dessinerRepereTour(); // Ajouter le repère de tour
     dessinerJoueur();
     dessinerStamina();
     dessinerCompteurTours();
@@ -102,25 +181,16 @@ function boucleJeu() {
     // Mettre à jour la position angulaire du joueur
     angleJoueur += vitesse;
 
-    // Détecter un tour complet
-    if (dernierAngle < 0 && angleJoueur >= 0) {
-        compteurTours++;
+    // Détection d'un tour complet : Si l'angle a fait un tour complet (autour de 2π)
+    if (angleJoueur >= Math.PI * 2) {
+        angleJoueur -= Math.PI * 2; // Réinitialiser l'angle après un tour complet
+        compteurTours++; // Incrémenter le compteur de tours
 
         // Calculer la stamina utilisée pendant le tour
         const staminaUtilisée = staminaDébutTour - stamina;
         if (staminaUtilisée >= staminaMax * 0.5) {
-            staminaMax = Math.max(10, staminaMax * 0.9); // Réduire de 10 %, minimum de 10 %
-        }
-        staminaDébutTour = stamina; // Réinitialiser la stamina de début de tour
-    }
-    dernierAngle = angleJoueur;
+            staminaMax = Math.max
 
-    // Recommencer la boucle
-    requestAnimationFrame(boucleJeu);
-}
-
-// Démarrer le jeu
-boucleJeu();
 
 
 
