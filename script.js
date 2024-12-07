@@ -189,11 +189,6 @@ function boucleJeu() {
         // Calculer la stamina utilisée pendant le tour
         const staminaUtilisée = staminaDébutTour - stamina;
         if (staminaUtilisée >= staminaMax * 0.5) {
-            staminaMax = Math.max
-
-        // Calculer la stamina utilisée pendant le tour
-        const staminaUtilisée = staminaDébutTour - stamina;
-        if (staminaUtilisée >= staminaMax * 0.5) {
             // Réduire la stamina maximale de 10% si 50% ou plus de la stamina a été utilisée
             staminaMax = Math.max(staminaMax * 0.9, 10); // Limiter la réduction à un minimum de 10%
         }
@@ -208,5 +203,6 @@ function boucleJeu() {
 
 // Lancer le jeu
 boucleJeu();
+
 
 
