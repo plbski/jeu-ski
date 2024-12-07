@@ -1,4 +1,3 @@
-// Initialisation du canvas
 const canvas = document.getElementById("jeu");
 const ctx = canvas.getContext("2d");
 canvas.width = 800;
@@ -140,42 +139,6 @@ function boucleJeu() {
     requestAnimationFrame(boucleJeu);  // Rafraîchir la boucle du jeu
 }
 
-boucleJeu();
-
-
-    // Gestion de la vitesse et de la stamina
-    if (espaceAppuye && stamina > 0) {
-        vitesse += acceleration;
-        stamina -= 0.5; // Réduction de la stamina
-    } else {
-        vitesse = Math.max(0.005, vitesse - 0.001); // Ralentir progressivement
-        stamina = Math.min(staminaMax, stamina + 0.2); // Régénérer la stamina
-    }
-
-    // Mettre à jour la position angulaire du joueur
-    angleJoueur += vitesse;
-
-    // Détection d'un tour complet : Si l'angle a fait un tour complet (autour de 2π)
-    if (angleJoueur >= Math.PI * 2) {
-        angleJoueur -= Math.PI * 2; // Réinitialiser l'angle après un tour complet
-        compteurTours++; // Incrémenter le compteur de tours
-
-        // Calculer la stamina utilisée pendant le tour
-        const staminaUtilisée = staminaDébutTour - stamina;
-        if (staminaUtilisée >= staminaMax * 0.5) {
-            // Réduire la stamina maximale de 10% si 50% ou plus de la stamina a été utilisée
-            staminaMax = Math.max(staminaMax * 0.9, 10); // Limiter la réduction à un minimum de 10%
-        }
-
-        // Réinitialiser la stamina au début du tour
-        staminaDébutTour = stamina;
-    }
-
-    // Rafraîchir le jeu
-    requestAnimationFrame(boucleJeu);
-}
-
-// Lancer le jeu
 boucleJeu();
 
 
