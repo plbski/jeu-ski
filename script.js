@@ -1,163 +1,196 @@
-const canvas = document.getElementById("jeu");
-const ctx = canvas.getContext("2d");
-canvas.width = 800;
-canvas.height = 800;
+class Personnage {
+    constructor(x, y, tailleCase, staminaMax) {
+        this.x = x;
+        this.y = y;
+        this.tailleCase = tailleCase;
+        this.cheminComplet = [];
+        this.indexCourant = 0;
+        this.staminaMax = staminaMax;
+        this.stamina = staminaMax; // La stamina commence à son maximum
+        this.vitesseBase = 0.5; // Vitesse de déplacement par défaut (plus lent)
+        this.vitesseAcc = 2; // Vitesse d'accélération (quand espace est pressé)
+        this.vitesse = this.vitesseBase; // Initialement, la vitesse est à la vitesse de base
+        this.accelerationActive = false; // Indicateur pour savoir si la barre espace est enfoncée
+    }
 
-const centre = { x: canvas.width / 2, y: canvas.height / 2 };
-const rayonExterieur = 300;
-const rayonInterieur = 200;
-let angleJoueur = 0;
-let vitesse = 0.005;
-let acceleration = 0.001;
-let stamina = 100;
-let staminaMax = 100;
-let staminaDébutTour = 100;
-let compteurTours = 0;
+    // Fonction pour diminuer la stamina à chaque mouvement si la barre espace est pressée
+    diminuerStamina() {
+        if (this.accelerationActive && this.stamina > 0) {
+            this.stamina -= 0.2; // Décrément de la stamina par mouvement quand la barre espace est pressée
+            if (this.stamina <= 0) {
+                this.stamina = 0;
+                this.accelerationActive = false; // Désactiver l'accélération quand la stamina est épuisée
+            }
+        }
+    }
 
-let chemin = [
-        { type: 'ligne', longueur: 150, angle: 0 },
-        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI / 2 },
-        { type: 'ligne', longueur: 150, angle: Math.PI },
-        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: Math.PI + Math.PI / 2 },
-        { type: 'ligne', longueur: 150, angle: 0 },
-        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI / 2 },
-        { type: 'ligne', longueur: 150, angle: Math.PI },
-        { type: 'courbe', rayon: 100, arc: Math.PI / 2, angle: -Math.PI }
-       ];
+    // Fonction pour activer ou désactiver l'accélération en fonction de l'état de la barre espace
+    gererAcceleration(touche) {
+        if (touche === 'space' && this.stamina > 0) {
+            this.accelerationActive = true;
+            this.vitesse = this.vitesseAcc; // Accélérer lorsque la barre espace est enfoncée
+        } else {
+            this.accelerationActive = false;
+            this.vitesse = this.vitesseBase; // Revenir à la vitesse de base lorsque la barre espace est relâchée
+        }
+    }
 
-let parcours = [];  // Tableau pour stocker les points de la trajectoire du joueur
+    trouverCheminComplet(carte) {
+        let pointDepart = this.trouverPointDepart(carte);
+        if (!pointDepart) return;
 
-function dessinerParcours() {
-    let x = centre.x;
-    let y = centre.y;
-    let angle = 0;
+        this.cheminComplet = [pointDepart];
+        this.x = pointDepart.x;
+        this.y = pointDepart.y;
 
-    chemin.forEach((segment) => {
-        if (segment.type === 'ligne') {
-            // Calcul précis du point final pour une ligne
-            let x2 = x + Math.cos(angle) * segment.longueur;
-            let y2 = y + Math.sin(angle) * segment.longueur;
+        const directions = [
+            {dx: 1, dy: 0},   // Droite
+            {dx: -1, dy: 0},  // Gauche
+            {dx: 0, dy: 1},   // Bas
+            {dx: 0, dy: -1}   // Haut
+        ];
 
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x2, y2);
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 3;
-            ctx.stroke();
+        while (true) {
+            let dernierPoint = this.cheminComplet[this.cheminComplet.length - 1];
+            let prochaineCase = null;
 
-            // Mise à jour des coordonnées et de l'angle
-            x = x2;
-            y = y2;
-            angle += segment.angle;
-        } 
-        else if (segment.type === 'courbe') {
-            let startAngle = angle;
-            let endAngle = startAngle + segment.arc;
+            for (let dir of directions) {
+                let nouveauX = dernierPoint.x + dir.dx;
+                let nouveauY = dernierPoint.y + dir.dy;
 
-            ctx.beginPath();
-            ctx.arc(x, y, segment.rayon, startAngle, endAngle);
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 3;
-            ctx.stroke();
+                if (this.estCaseValide(carte, nouveauX, nouveauY) && 
+                    !this.cheminContient(nouveauX, nouveauY)) {
+                    prochaineCase = {x: nouveauX, y: nouveauY};
+                    break;
+                }
+            }
 
-            // Calcul précis du nouveau point
-            x = x + Math.cos(startAngle) * segment.rayon;
-            y = y + Math.sin(startAngle) * segment.rayon;
-            angle = endAngle;
+            if (!prochaineCase) break;
+
+            this.cheminComplet.push(prochaineCase);
+        }
+    }
+
+    trouverPointDepart(carte) {
+        for (let y = 0; y < carte.length; y++) {
+            for (let x = 0; x < carte[y].length; x++) {
+                if (carte[y][x] === 1) {
+                    return {x, y};
+                }
+            }
+        }
+        return null;
+    }
+
+    estCaseValide(carte, x, y) {
+        return x >= 0 && x < carte[0].length && 
+               y >= 0 && y < carte.length && 
+               carte[y][x] === 1;
+    }
+
+    cheminContient(x, y) {
+        return this.cheminComplet.some(point => 
+            point.x === x && point.y === y
+        );
+    }
+
+    deplacer() {
+        if (this.indexCourant < this.cheminComplet.length - 1) {
+            this.indexCourant += this.vitesse; // La vitesse affecte l'index
+            if (this.indexCourant >= this.cheminComplet.length) {
+                this.indexCourant = this.cheminComplet.length - 1;
+            }
+            this.x = this.cheminComplet[Math.floor(this.indexCourant)].x;
+            this.y = this.cheminComplet[Math.floor(this.indexCourant)].y;
+
+            this.diminuerStamina(); // Diminuer la stamina à chaque mouvement si espace est enfoncé
+        } else {
+            this.indexCourant = 0;
+            this.x = this.cheminComplet[this.indexCourant].x;
+            this.y = this.cheminComplet[this.indexCourant].y;
+        }
+    }
+
+    dessiner(ctx) {
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(
+            (this.x + 0.5) * this.tailleCase, 
+            (this.y + 0.5) * this.tailleCase, 
+            this.tailleCase / 3, 
+            0, 
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        // Affichage de la stamina
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(10, 10, this.stamina * 2, 20); // Affichage de la barre de stamina
+    }
+}
+
+// Fonction d'initialisation
+function initialiser() {
+    const carte = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+
+    const TAILLE_CASE = 50;
+    const canvas = document.getElementById('jeu');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = carte[0].length * TAILLE_CASE;
+    canvas.height = carte.length * TAILLE_CASE;
+
+    const personnage = new Personnage(0, 0, TAILLE_CASE, 100);
+    personnage.trouverCheminComplet(carte);
+
+    // Gérer l'événement de la barre espace
+    window.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+            personnage.gererAcceleration('space');
         }
     });
 
-    // Optionnel : fermer le circuit
-    ctx.beginPath();
-    ctx.moveTo(centre.x, centre.y);
-    ctx.closePath();
-    ctx.stroke();
-}
+    window.addEventListener('keyup', function(event) {
+        if (event.code === 'Space') {
+            personnage.gererAcceleration('release');
+        }
+    });
 
-function dessinerJoueur() {
-    const x = parcours[compteurTours].x;
-    const y = parcours[compteurTours].y;
-    
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2);
-    ctx.fillStyle = "blue";
-    ctx.fill();
-}
+    // Boucle de jeu
+    function boucleDeJeu() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function dessinerStamina() {
-    const largeurBarre = 200;
-    const hauteurBarre = 20;
-    const x = canvas.width / 2 - largeurBarre / 2;
-    const y = canvas.height - 50;
-    
-    ctx.fillStyle = "black";
-    ctx.fillRect(x - 2, y - 2, largeurBarre + 4, hauteurBarre + 4);
-    
-    ctx.fillStyle = "green";
-    ctx.fillRect(x, y, (stamina / staminaMax) * largeurBarre, hauteurBarre);
-}
+        // Dessiner la carte
+        for (let y = 0; y < carte.length; y++) {
+            for (let x = 0; x < carte[y].length; x++) {
+                ctx.fillStyle = carte[y][x] === 0 ? 'gray' : 'white';
+                ctx.fillRect(x * TAILLE_CASE, y * TAILLE_CASE, TAILLE_CASE, TAILLE_CASE);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(x * TAILLE_CASE, y * TAILLE_CASE, TAILLE_CASE, TAILLE_CASE);
+            }
+        }
 
-function dessinerCompteurTours() {
-    ctx.fillStyle = "black";
-    ctx.font = "20px Arial";
-    ctx.fillText(`Tours: ${compteurTours}`, 10, 30);
-}
+        // Déplacer et dessiner le personnage
+        personnage.deplacer();
+        personnage.dessiner(ctx);
 
-function avancerJoueur() {
-    let segmentActuel = chemin[compteurTours % chemin.length];
-    
-    if (segmentActuel.type === 'ligne') {
-        // Progression sur une ligne droite
-        x += Math.cos(angleJoueur) * vitesse;
-        y += Math.sin(angleJoueur) * vitesse;
-    } else if (segmentActuel.type === 'courbe') {
-        // Progression sur une courbe
-        angleJoueur += vitesse / segmentActuel.rayon;
-        x = centre.x + Math.cos(angleJoueur) * segmentActuel.rayon;
-        y = centre.y + Math.sin(angleJoueur) * segmentActuel.rayon;
+        requestAnimationFrame(boucleDeJeu);
     }
 
-    // Ajouter la position actuelle à la trajectoire du joueur
-    parcours.push({ x, y });
-    if (parcours.length > 200) parcours.shift();
-
-    // Gestion de la vitesse et de la stamina
-    if (stamina > 0 && espaceAppuye) {
-        vitesse += acceleration;
-        stamina -= 0.5;
-    }
-
-    // Vérifier si le segment est terminé
-    if (/* condition de fin de segment */) {
-        compteurTours++;
-    }
+    // Démarrer la boucle de jeu
+    boucleDeJeu();
 }
 
-let espaceAppuye = false;
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space") {
-        espaceAppuye = true;
-    }
-});
-window.addEventListener("keyup", (e) => {
-    if (e.code === "Space") {
-        espaceAppuye = false;
-    }
-});
-
-function boucleJeu() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    dessinerParcours();  // Dessiner le parcours
-    avancerJoueur();     // Avancer le joueur sur le parcours
-    dessinerJoueur();    // Dessiner le joueur
-    dessinerStamina();   // Dessiner la barre de stamina
-    dessinerCompteurTours();  // Dessiner le compteur de tours
-    
-    requestAnimationFrame(boucleJeu);  // Rafraîchir la boucle du jeu
-}
-
-boucleJeu();
-
-
+// Initialiser au chargement
+window.onload = initialiser;
 
