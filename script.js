@@ -13,7 +13,8 @@ class Personnage {
         this.accelerationActive = false; // Indicateur pour savoir si la barre espace est enfoncée
         this.count_tour = 0; // Compteur de tours
         this.positionDepart = { x: 0, y: 0 }; // Initialiser la position de départ
-        this.couleurDepart = 'red'; // Couleur de la case de départ
+        this.couleurDepart = 'red'; // Couleur de la case de départ¨
+        this.jeuTermine = false; // Par défaut, le jeu n'est pas terminé
     }
 
     // Fonction pour diminuer la stamina à chaque mouvement si la barre espace est pressée
@@ -123,11 +124,24 @@ class Personnage {
     }
 
     // Vérifier si le personnage est sur la case de départ pour incrémenter le compteur de tours
-    verifierTour(carte) {
+    verifierTour() {
         if (this.x === this.positionDepart.x && this.y === this.positionDepart.y) {
-            this.count_tour += 0.25; // Incrémenter le compteur de tours
+            if (!this.aFaitTour) {
+                this.count_tour += 1;
+                this.aFaitTour = true;
+                console.log(`Tour ${this.count_tour} terminé !`);
+    
+                // Vérifiez si le compteur de tours atteint 5
+                if (this.count_tour >= 5) {
+                    this.jeuTermine = true; // Indiquer que le jeu est terminé
+                    console.log("Jeu terminé après 5 tours !");
+                }
+            }
+        } else {
+            this.aFaitTour = false;
         }
     }
+    
 
     // Dessiner le personnage et la stamina
     dessiner(ctx) {
@@ -170,8 +184,12 @@ function initialiser() {
     canvas.width = carte[0].length * TAILLE_CASE;
     canvas.height = carte.length * TAILLE_CASE;
 
-    const personnage = new Personnage(0, 0, TAILLE_CASE, 100);
+    const personnage = new Personnage(0, 0, TAILLE_CASE, 50);
     personnage.trouverCheminComplet(carte);
+
+    const boutonRejouer = document.getElementById('rejouer');
+    let chronoDebut = null; // Stocker le temps de début
+    let tempsFinal = null; // Stocker le temps final une fois 5 tours complétés
 
     // Gérer l'événement de la barre espace
     window.addEventListener('keydown', function(event) {
@@ -186,9 +204,27 @@ function initialiser() {
         }
     });
 
+    // Fonction pour réinitialiser le jeu
+    function rejouer() {
+        boutonRejouer.style.display = 'none'; // Cacher le bouton
+        personnage.count_tour = 0; // Réinitialiser le compteur de tours
+        personnage.stamina = personnage.staminaMax; // Réinitialiser la stamina
+        personnage.indexCourant = 0; // Repartir au début du chemin
+        chronoDebut = performance.now(); // Réinitialiser le chronomètre
+        tempsFinal = null;
+        boucleDeJeu(); // Recommencer la boucle de jeu
+    }
+
+    boutonRejouer.addEventListener('click', rejouer);
+
     // Boucle de jeu
     function boucleDeJeu() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Démarrer le chronomètre
+        if (chronoDebut === null) {
+            chronoDebut = performance.now();
+        }
 
         // Dessiner la carte
         for (let y = 0; y < carte.length; y++) {
@@ -205,6 +241,25 @@ function initialiser() {
         personnage.deplacer();
         personnage.dessiner(ctx);
 
+        // Vérifier la fin du jeu
+        if (personnage.count_tour >= 5) {
+            if (tempsFinal === null) {
+                tempsFinal = performance.now() - chronoDebut; // Calculer le temps total en ms
+            }
+
+            // Afficher le temps final
+            ctx.fillStyle = 'black';
+            ctx.font = '68px Arial';
+            ctx.fillText(
+                `Temps total : ${(tempsFinal / 1000).toFixed(2)} s`,
+                canvas.width / 2 - 300, 
+                canvas.height / 2
+            );
+            ctx.font = '12px Arial';
+            boutonRejouer.style.display = 'block'; // Afficher le bouton rejouer
+            return; // Arrêter la boucle de jeu
+        }
+
         requestAnimationFrame(boucleDeJeu);
     }
 
@@ -214,6 +269,8 @@ function initialiser() {
 
 // Initialiser au chargement
 window.onload = initialiser;
+
+
 
 
 
