@@ -1,0 +1,31 @@
+canvas {
+    border: 2px solid black;
+    display: block;
+    margin: 20px auto;
+}
+
+#rejouer {
+    display: none; /* Caché par défaut */
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(90deg, #ff7e5f, #feb47b); /* Dégradé */
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    margin: 0 auto; /* Centrer le bouton */
+    display: block;
+}
+
+#rejouer:hover {
+    transform: scale(1.1); /* Agrandit légèrement au survol */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Augmente l'ombre */
+}
+
+#rejouer:active {
+    transform: scale(1.05); /* Réduction légère quand cliqué */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Réduit l'ombre */
+}
